@@ -24,7 +24,7 @@ Plugin supports several lightbox implementations.
 == Installation ==
 
 1.	Upload the full directory to wp-content/plugins
-2.	Activate plugin Tags Page in plugins administration
+2.	Activate plugin Gallery Slice in plugins administration
 3.	You can modify the settings of the behaviour in Settings → Media
 
 == Screenshots ==
