@@ -3,9 +3,12 @@
 jQuery(document).ready(function($){
 	$(".unsliced-gallery-link a").click(function(){
 		var hyperlink_div = $(this).parent();
+		var animation_div = hyperlink_div.next();
 		var gallery = hyperlink_div.prev();
 		var rel_attr = gallery.find("a").first().attr("rel");
 
+    hyperlink_div.hide();
+    animation_div.show();
 		$.post(
 			GallerySliceAjax.ajaxurl,
 			{
@@ -19,7 +22,6 @@ jQuery(document).ready(function($){
 					// no reasonable data retrieved via ajax => fallback to opening post page
 					return window.location.href = gallery.parents(".post").find(".entry-title a").attr("href");
 				}
-				hyperlink_div.hide();
 				hyperlink_div.after('<div style="display:none">' + response.gallery + '</div>');
 				var temp_gallery = hyperlink_div.next().children().first();
 				var temp_gallery_children_length = temp_gallery.children().length;
@@ -88,6 +90,7 @@ jQuery(document).ready(function($){
 				// delete hidden gallery and delete full gallery link
 				hyperlink_div.next().remove();
 				hyperlink_div.remove();
+				animation_div.remove();
 			}
 		);
 		return false;

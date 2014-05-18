@@ -3,7 +3,7 @@
 Plugin Name: Gallery Slice
 Plugin URI: http://www.honza.info/category/wordpress/
 Description: Slices gallery to a "preview" on archive pages (date, category, tag and author based lists, usually including homepage)
-Version: 1.0
+Version: 1.1
 Author: Honza Skypala
 Author URI: http://www.honza.info/
 */
@@ -11,7 +11,7 @@ Author URI: http://www.honza.info/
 include_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
 class GallerySlice {
-  const version = "1.0";
+  const version = "1.1";
 
   const ajax_devel_script    = 'ajax-devel.js';
   const ajax_minified_script = 'ajax.js';
@@ -126,6 +126,7 @@ class GallerySlice {
     $full_gallery_link = trim($full_gallery_link);
     if ($full_gallery_link != "") {
       $full_gallery_link = "<div class=\"unsliced-gallery-link\"><a href=\"" . get_permalink() . "\" post_id=\"" . $post->ID . "\" orig_gallery_attrs=\"" . htmlspecialchars($orig_attr_json) . "\">$full_gallery_link</a></div>";
+      $full_gallery_link .= "<div class=\"gallery-loading-animation\" style=\"display:none\"><img src=\"". get_option('gallery_slice_waiting_img') . "\"></div>";
     }
   
     // return the tag back with sliced ids
@@ -166,14 +167,17 @@ class GallerySlice {
 */
 
   public function gallery_slice_admin_init() {
+    self::gallery_slice_update_plugin_version();
     wp_register_script( 'gallery-slice-admin-script', plugins_url( '/admin.js', __FILE__ ) , array('jquery'), false, true);
     add_settings_section('gallery_slice_section', __('Gallery Slice', 'gallery_slice'), array($this, 'gallery_slice_settings_section'), 'media');
     register_setting('media', 'gallery_slice_threshold', create_function('$input', 'return(filter_var($input, FILTER_SANITIZE_NUMBER_INT));'));
-    add_settings_field('gallery_slice_threshold', __('Maximum Threshold', 'gallery_slice'), create_function('', 'GallerySlice::gallery_slice_option_length("threshold", "If gallery contains more than this amount of pictures, it will be sliced down; otherwise it will be kept intact.");'), 'media', 'gallery_slice_section');
+    add_settings_field('gallery_slice_threshold', __('Maximum Threshold', 'gallery_slice'), 'GallerySlice::gallery_slice_option', 'media', 'gallery_slice_section', array('option'=>"threshold", 'type'=>'number', 'description'=>"If gallery contains more than this amount of pictures, it will be sliced down; otherwise it will be kept intact."));
     register_setting('media', 'gallery_slice_downto', create_function('$input', 'return(filter_var($input, FILTER_SANITIZE_NUMBER_INT));'));
-    add_settings_field('gallery_slice_downto', __('Slice down to', 'gallery_slice'), create_function('', 'GallerySlice::gallery_slice_option_length("downto", "If threshold surpassed, slice gallery down to this amount of pictures.");'), 'media', 'gallery_slice_section');
+    add_settings_field('gallery_slice_downto', __('Slice down to', 'gallery_slice'), 'GallerySlice::gallery_slice_option', 'media', 'gallery_slice_section', array('option'=>"downto", 'type'=>'number', 'description'=>"If threshold surpassed, slice gallery down to this amount of pictures."));
     register_setting('media', 'gallery_slice_link2full', create_function('$input', 'return(sanitize_text_field($input));'));
-    add_settings_field('gallery_slice_link2full', __('Full gallery link text', 'gallery_slice'), create_function('', 'GallerySlice::gallery_slice_option_string("link2full", "The text that should be shown for displaying full gallery.");'), 'media', 'gallery_slice_section');
+    add_settings_field('gallery_slice_link2full', __('Full gallery link text', 'gallery_slice'), 'GallerySlice::gallery_slice_option', 'media', 'gallery_slice_section', array('option'=>"link2full", 'description'=>"The text that should be shown for displaying full gallery."));
+    register_setting('media', 'gallery_slice_waiting_img', create_function('$input', 'return(filter_var($input, FILTER_SANITIZE_URL));'));
+    add_settings_field('gallery_slice_waiting_img', __('Loading animation', 'gallery_slice'), 'GallerySlice::gallery_slice_option_waiting_img', 'media', 'gallery_slice_section');
   }
   
   public function gallery_slice_settings_section() {
@@ -186,20 +190,22 @@ class GallerySlice {
     ); 
   }
 
-  public function gallery_slice_option_length($option, $description) {
+  public function gallery_slice_option(array $args) {
     echo(
-      '<input name="gallery_slice_' . $option . '" type="number" min="1" id="gallery_slice_' . $option . '" value="' . get_option("gallery_slice_$option") . '" class="small-text" /> '
-      . __($description, 'gallery_slice')
+      '<input name="gallery_slice_' . $args['option'] . '" type="' . (array_key_exists('type',$args) ? $args['type'] : "text") . '" id="gallery_slice_' . $args['option'] . '" value="' . get_option("gallery_slice_" . $args['option']) . '" class="' . ($args['type'] == "number" ? "small-text" : "regular-text") . '" ' . ($args['type'] == "number" ? 'min="1" ' : "") . '/> '
+      . __($args['description'], 'gallery_slice')
      );
   }
-
-  public function gallery_slice_option_string($option, $description) {
+  
+  public function gallery_slice_option_waiting_img() {
     echo(
-      '<input name="gallery_slice_' . $option . '" type="text" id="gallery_slice_' . $option . '" value="' . get_option("gallery_slice_$option") . '" class="regular-text" /> '
-      . __($description, 'gallery_slice')
+      '<input name="gallery_slice_waiting_img" type="url" id="gallery_slice_waiting_img" value="' . get_option("gallery_slice_waiting_img") . '" class="regular-text" /> '
+      . __("URL of the img showing when loading rest of gallery.", 'gallery_slice')
+      . '<br />'
+      . '<input type="button" value="Set default" onclick="jQuery(\'input#gallery_slice_waiting_img\').attr(\'value\',\'' . plugins_url( '/ajax-loader.gif', __FILE__ ) . '\');">'
      );
   }
-
+  
   protected static $script_enqueued = false;
   public function gallery_slice_enqueue_scripts() {
     if (!self::$script_enqueued) {
@@ -219,6 +225,18 @@ class GallerySlice {
     add_option('gallery_slice_threshold', 15);
     add_option('gallery_slice_downto', 9);
     add_option('gallery_slice_link2full', __("Full gallery →", 'gallery_slice'));
+    add_option('gallery_slice_waiting_img', plugins_url( '/ajax-loader.gif', __FILE__ ));
+  }
+  
+  public function gallery_slice_update_plugin_version() {
+    $registered_version = get_option('gallery_slice_version', '0');
+    if (version_compare($registered_version, self::version, '<')) {
+      if (version_compare($registered_version, '1.1', '<')) {
+        // new option in version 1.1
+        add_option('gallery_slice_waiting_img', plugins_url( '/ajax-loader.gif', __FILE__ ));
+      }
+      update_option('gallery_slice_version', self::version);
+    }
   }
 
   protected static $this_plugin;
