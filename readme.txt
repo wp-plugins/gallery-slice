@@ -4,7 +4,7 @@ Donate link: http://www.honza.info
 Tags: gallery, ajax, image, images
 Requires at least: 3.9
 Tested up to: 3.9.1
-Stable tag: 1.1
+Stable tag: 1.2
 License: WTFPL license applies
 
 Slice down galleries on archive pages to preview-only, with link to load full gallery via Ajax
@@ -61,6 +61,10 @@ Examples:
 * Initial release
 = 1.1 =
 * Loading animation added; user can specify his own loading gif in the options
+= 1.2 =
+* Loading animation option integrated with WordPress Media Library
+* Added some missing strings to i18n
+* Smaller fixes and optimizations
 
 == License ==
 
@@ -69,5 +73,4 @@ WTFPL license applies
 == ToDo's ==
 * enable plugin to work in opposite manner - do not automatically slice down galleries, but only on posts / tags where the downto attr is set
 * re-check WP-Minify on possibility to use the compiled JS files (internal)
-* integrate loading animation gif option (settings) integrated with WordPress media library
 * enable slicing w/ Ajax loading on single posts

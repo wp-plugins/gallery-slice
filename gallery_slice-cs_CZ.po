@@ -42,3 +42,15 @@ msgstr "Zkrátit na %1 náhledů"
 
 msgid "Use globally configured fully gallery hyperlink text (%1)"
 msgstr "Použít globálně nastavený text odkazu pro zobrazení celé galerie (%1)"
+
+msgid "Loading animation"
+msgstr "Animace při nahrávání"
+
+msgid "Set Default"
+msgstr "Nastavit výchozí"
+
+msgid "Select image"
+msgstr "Vyberte obrázek"
+
+msgid "URL of the img showing when loading rest of gallery."
+msgstr "URL adresa obrázku zobrazeného při nahrávání zbytku galerie."

@@ -3,7 +3,7 @@
 Plugin Name: Gallery Slice
 Plugin URI: http://www.honza.info/category/wordpress/
 Description: Slices gallery to a "preview" on archive pages (date, category, tag and author based lists, usually including homepage)
-Version: 1.1
+Version: 1.2
 Author: Honza Skypala
 Author URI: http://www.honza.info/
 */
@@ -11,7 +11,7 @@ Author URI: http://www.honza.info/
 include_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
 class GallerySlice {
-  const version = "1.1";
+  const version = "1.2";
 
   const ajax_devel_script    = 'ajax-devel.js';
   const ajax_minified_script = 'ajax.js';
@@ -135,38 +135,10 @@ class GallerySlice {
 
   const gallery_shortcode_regex = '\\[(\\[?)(gallery)(?![\\w-])([^\\]\\/]*(?:\\/(?!\\])[^\\]\\/]*)*?)(?:(\\/)\\]|\\](?:([^\\[]*+(?:\\[(?!\\/\\2\\])[^\\[]*+)*+)\\[\\/\\2\\])?)(\\]?)';
 
-/*  
-      '\\['                              // Opening bracket
-      . '(\\[?)'                           // 1: Optional second opening bracket for escaping shortcodes: [[tag]]
-      . "(gallery)"                     // 2: Shortcode name
-      . '(?![\\w-])'                       // Not followed by word character or hyphen
-      . '('                                // 3: Unroll the loop: Inside the opening shortcode tag
-      .     '[^\\]\\/]*'                   // Not a closing bracket or forward slash
-      .     '(?:'
-      .         '\\/(?!\\])'               // A forward slash not followed by a closing bracket
-      .         '[^\\]\\/]*'               // Not a closing bracket or forward slash
-      .     ')*?'
-      . ')'
-      . '(?:'
-      .     '(\\/)'                        // 4: Self closing tag ...
-      .     '\\]'                          // ... and closing bracket
-      . '|'
-      .     '\\]'                          // Closing bracket
-      .     '(?:'
-      .         '('                        // 5: Unroll the loop: Optionally, anything between the opening and closing shortcode tags
-      .             '[^\\[]*+'             // Not an opening bracket
-      .             '(?:'
-      .                 '\\[(?!\\/\\2\\])' // An opening bracket not followed by the closing shortcode tag
-      .                 '[^\\[]*+'         // Not an opening bracket
-      .             ')*+'
-      .         ')'
-      .         '\\[\\/\\2\\]'             // Closing shortcode tag
-      .     ')?'
-      . ')'
-      . '(\\]?)';                          // 6: Optional second closing brocket for escaping shortcodes: [[tag]]
-*/
-
   public function gallery_slice_admin_init() {
+    if (stristr($_SERVER['REQUEST_URI'], 'options-media.php')) {
+      wp_enqueue_style('editor-buttons'); // we need to do this here; if we do it in admin_enqueue_scripts, it does not load
+    }
     self::gallery_slice_update_plugin_version();
     wp_register_script( 'gallery-slice-admin-script', plugins_url( '/admin.js', __FILE__ ) , array('jquery'), false, true);
     add_settings_section('gallery_slice_section', __('Gallery Slice', 'gallery_slice'), array($this, 'gallery_slice_settings_section'), 'media');
@@ -199,10 +171,14 @@ class GallerySlice {
   
   public function gallery_slice_option_waiting_img() {
     echo(
-      '<input name="gallery_slice_waiting_img" type="url" id="gallery_slice_waiting_img" value="' . get_option("gallery_slice_waiting_img") . '" class="regular-text" /> '
+      '<img id="gallery_slice_waiting_img_preview" src="' . get_option("gallery_slice_waiting_img") . '" style="margin:6px 0"/><br>'
+      . '<div style="margin-bottom:0.5em;float:none" class="wp-media-buttons">'
+      . '<style>.wp-media-buttons .add_media span.wp-media-buttons-icon-imageonly:before{content:\'\\f306\';}</style>'
+      . '<a id="gallery_slice_waiting_img_media_library_button" class="button insert-media add_media" style="padding-left:5px;padding-right:7px;" selecttext="' . __('Select image', 'gallery_slice') . '"><span class="wp-media-buttons-icon wp-media-buttons-icon-imageonly"></span>' . __('Media Library') . '</a> '
+      . '<a id="gallery_slice_waiting_img_set_default" class="button" defaultvalue="' . plugins_url( '/ajax-loader.gif', __FILE__ ) . '">' . __('Set Default', 'gallery_slice') . '</a>'
+      . '</div>'
+      . '<input name="gallery_slice_waiting_img" type="url" id="gallery_slice_waiting_img" value="' . get_option("gallery_slice_waiting_img") . '" class="regular-text" /> '
       . __("URL of the img showing when loading rest of gallery.", 'gallery_slice')
-      . '<br />'
-      . '<input type="button" value="Set default" onclick="jQuery(\'input#gallery_slice_waiting_img\').attr(\'value\',\'' . plugins_url( '/ajax-loader.gif', __FILE__ ) . '\');">'
      );
   }
   
@@ -216,8 +192,15 @@ class GallerySlice {
   }
   
   public function gallery_slice_admin_enqueue_scripts($hook) {
-    if ($hook != "post.php" && $hook != "post-new.php") return;
-    wp_enqueue_script('gallery-slice-admin-script');
+    switch ($hook) {
+    case "options-media.php":
+      wp_enqueue_style('dashicons');
+      wp_enqueue_media();
+      wp_enqueue_style('media'); // notice we continue, we do not break
+    case "post.php":
+    case "post-new.php":
+      wp_enqueue_script('gallery-slice-admin-script');
+    }
   }
 
   public function gallery_slice_activate() {
