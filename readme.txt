@@ -57,14 +57,14 @@ Examples:
 
 == Changelog ==
 
-= 1.0 =
-* Initial release
-= 1.1 =
-* Loading animation added; user can specify his own loading gif in the options
 = 1.2 =
 * Loading animation option integrated with WordPress Media Library
 * Added some missing strings to i18n
 * Smaller fixes and optimizations
+= 1.1 =
+* Loading animation added; user can specify his own loading gif in the options
+= 1.0 =
+* Initial release
 
 == License ==
 
