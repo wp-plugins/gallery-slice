@@ -23,7 +23,7 @@ jQuery(document).ready(function($){
 					return window.location.href = gallery.parents(".post").find(".entry-title a").attr("href");
 				}
 				hyperlink_div.after('<div style="display:none">' + response.gallery + '</div>');
-				var temp_gallery = hyperlink_div.next().children().first();
+				var temp_gallery = hyperlink_div.next().find("div.gallery");
 				var temp_gallery_children_length = temp_gallery.children().length;
 				
 				// remove pictures (tags) that are already contained in gallery preview

@@ -57,6 +57,8 @@ Examples:
 
 == Changelog ==
 
+= 1.2.1 =
+* Compatibility with <a href="http://wordpress.org/plugins/jetpack/">JetPack</a> plugin <a href="http://jetpack.me/support/mobile-theme/">Mobile Theme</a>
 = 1.2 =
 * Loading animation option integrated with WordPress Media Library
 * Added some missing strings to i18n
