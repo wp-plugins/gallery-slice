@@ -3,7 +3,7 @@
 Plugin Name: Gallery Slice
 Plugin URI: http://wordpress.org/plugins/gallery-slice/
 Description: Slices gallery to a "preview" on archive pages (date, category, tag and author based lists, usually including homepage)
-Version: 1.2
+Version: 1.2.1
 Author: Honza Skypala
 Author URI: http://www.honza.info/
 */
@@ -11,7 +11,7 @@ Author URI: http://www.honza.info/
 include_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
 class GallerySlice {
-  const version = "1.2";
+  const version = "1.2.1";
 
   const ajax_devel_script    = 'ajax-devel.js';
   const ajax_minified_script = 'ajax.js';
