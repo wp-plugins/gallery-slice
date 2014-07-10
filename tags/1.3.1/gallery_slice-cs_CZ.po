@@ -1,0 +1,56 @@
+# Copyright (C) 2013 Honza Skýpala
+# This file is distributed under the same license as the Gallery Slice plug-in
+
+msgid "Gallery Slice"
+msgstr "Zkracování galerie"
+
+msgid "You can slice the gallery on archive type pages — date-based, category-based, tag-based, author-based lists of posts. Typically a homepage is a date-based archive, then it applies also to homepage."
+msgstr "Plug-in <em>Gallery Slice</em> zkracuje galerie obrázků na stránkách typu archive — výpisy článků podle data, kategorie, štítku nebo autora. Typicky domovská stránka je výpis článků podle data, potom se zkrácení aplikuje i na domovskou stránku."
+
+msgid "The purpose is that your post can contain a huge gallery of pictures (let's say like 100), but you want to display all of 100 only on a single post page; on a homepage / archive page you want to display just a couple of images, like a preview. This plugins slices the gallery only to a defined number."
+msgstr "Důvodem zkrácení je, že články mohou mít obrovské galerie obrázků (řekněme jedna galerie více jak 100 obrázků), ale vy chcete všechny obrázky ukázat jen při výpisu samostatného článku; na vaší domovské stránce a dalších archivních stránkách chcete ukázat pouze několik obrázků z galerie, pouze náhled galerie. Tento plug-in umožňuje pro takové účely zkrátit galerii na určené množství obrázků."
+
+msgid "Maximum Threshold"
+msgstr "Maximální hladina"
+
+msgid "If gallery contains more than this amount of pictures, it will be sliced down; otherwise it will be kept intact."
+msgstr "Pokud galerie obsahuje více obrázků než je toto množství, bude zkrácena; pokud ne, nebude nijak dotčena."
+
+msgid "Slice down to"
+msgstr "Zkrátit na"
+
+msgid "If threshold surpassed, slice gallery down to this amount of pictures."
+msgstr "Pokud je překročena maximální hladina (viz výše), galerie bude zkrácena na toto množství obrázků."
+
+msgid "Full gallery link text"
+msgstr "Text odkazu na celou galerii"
+
+msgid "The text that should be shown for displaying full gallery."
+msgstr "Text, který má být použit na odkazu pro zobrazení celé galerie."
+
+msgid "Full gallery →"
+msgstr "Celá galerie →"
+
+msgid "Do not slice gallery in this post"
+msgstr "Nezkracovat galerii v tomto příspěvku"
+
+msgid "Slice to globally configured value (%1)"
+msgstr "Zkrátit na globálně nastavenou hodnotu (%1)"
+
+msgid "Slice down to %1 thumbnails"
+msgstr "Zkrátit na %1 náhledů"
+
+msgid "Use globally configured fully gallery hyperlink text (%1)"
+msgstr "Použít globálně nastavený text odkazu pro zobrazení celé galerie (%1)"
+
+msgid "Loading animation"
+msgstr "Animace při nahrávání"
+
+msgid "Set Default"
+msgstr "Nastavit výchozí"
+
+msgid "Select image"
+msgstr "Vyberte obrázek"
+
+msgid "URL of the img showing when loading rest of gallery."
+msgstr "URL adresa obrázku zobrazeného při nahrávání zbytku galerie."

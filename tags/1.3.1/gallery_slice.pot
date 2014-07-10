@@ -1,0 +1,56 @@
+# Copyright (C) 2013 Honza Skýpala
+# This file is distributed under the same license as the Gallery Slice plug-in
+
+msgid "Gallery Slice"
+msgstr ""
+
+msgid "You can slice the gallery on archive type pages — date-based, category-based, tag-based, author-based lists of posts. Typically a homepage is a date-based archive, then it applies also to homepage."
+msgstr ""
+
+msgid "The purpose is that your post can contain a huge gallery of pictures (let's say like 100), but you want to display all of 100 only on a single post page; on a homepage / archive page you want to display just a couple of images, like a preview. This plugins slices the gallery only to a defined number."
+msgstr ""
+
+msgid "Maximum Threshold"
+msgstr ""
+
+msgid "If gallery contains more than this amount of pictures, it will be sliced down; otherwise it will be kept intact."
+msgstr ""
+
+msgid "Slice down to"
+msgstr ""
+
+msgid "If threshold surpassed, slice gallery down to this amount of pictures."
+msgstr ""
+
+msgid "Full gallery link text"
+msgstr ""
+
+msgid "The text that should be shown for displaying full gallery."
+msgstr ""
+
+msgid "Full gallery →"
+msgstr ""
+
+msgid "Do not slice gallery in this post"
+msgstr ""
+
+msgid "Slice to globally configured value (%1)"
+msgstr ""
+
+msgid "Slice down to %1 thumbnails"
+msgstr ""
+
+msgid "Use globally configured fully gallery hyperlink text (%1)"
+msgstr ""
+
+msgid "Loading animation"
+msgstr ""
+
+msgid "Set Default"
+msgstr ""
+
+msgid "Select image"
+msgstr ""
+
+msgid "URL of the img showing when loading rest of gallery."
+msgstr ""
