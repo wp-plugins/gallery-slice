@@ -3,15 +3,16 @@
 Plugin Name: Gallery Slice
 Plugin URI: http://wordpress.org/plugins/gallery-slice/
 Description: Slices gallery to a "preview" on archive pages (date, category, tag and author based lists, usually including homepage)
-Version: 1.2.1
+Version: 1.3
 Author: Honza Skypala
 Author URI: http://www.honza.info/
+License: WTFPL 2.0
 */
 
 include_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
 class GallerySlice {
-  const version = "1.2.1";
+  const version = "1.3";
 
   const ajax_devel_script    = 'ajax-devel.js';
   const ajax_minified_script = 'ajax.js';
@@ -21,23 +22,26 @@ class GallerySlice {
     $this->ajaxscript = $this->enforce_devel_script() ? self::ajax_devel_script : self::ajax_minified_script;
     add_action('init', create_function('', 'load_plugin_textdomain("gallery_slice", false, basename(dirname(__FILE__)));'));
     if (is_admin()) {
-      add_action('admin_init', array($this, 'gallery_slice_admin_init'));
-      add_action('admin_enqueue_scripts', array($this, 'gallery_slice_admin_enqueue_scripts'));
-      add_action('save_post', array($this, 'gallery_slice_save_postdata'));
+      add_action('admin_init', array($this, 'admin_init'));
+      add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
+      add_action('save_post', array($this, 'save_postdata'));
     } else {
-      add_filter('the_content', array($this, 'gallery_slice'), 1);
+      add_filter('the_content', array($this, 'slice'), 1);
       wp_register_script('gallery-slice-ajax', plugin_dir_url(__FILE__) . $this->ajaxscript, array('jquery'), false, !$this->ajaxscript_to_head());
+      add_filter('rajce-gallery-images', array($this, 'slice_rajce'), 10, 3);
       if ($this->ajaxscript_to_head())
-        add_action('wp_enqueue_scripts', array($this, 'gallery_slice_enqueue_scripts'));
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
     }
-    add_action('wp_ajax_nopriv_gallery_slice-full_gallery', array($this, 'gallery_slice_full_gallery'));
-    add_action('wp_ajax_gallery_slice-full_gallery', array($this, 'gallery_slice_full_gallery'));
-    register_activation_hook(__FILE__, array($this, 'gallery_slice_activate'));  // activation of plugin
-    add_filter('plugin_action_links', array($this, 'gallery_slice_filter_plugin_actions'), 10, 2);  // link from Plugins list admin page to settings of this plugin
-    add_action( 'add_meta_boxes', array($this, 'gallery_slice_add_custom_box'));
+    add_action('wp_ajax_nopriv_gallery_slice-full_gallery', array($this, 'full_gallery')); // ajax handler for annonymous users
+    add_action('wp_ajax_gallery_slice-full_gallery', array($this, 'full_gallery'));        // ajax handler for logged-in users
+    add_action('wp_ajax_nopriv_gallery_slice-full_rajce_gallery', array($this, 'full_rajce_gallery'));
+    add_action('wp_ajax_gallery_slice-full_rajce_gallery', array($this, 'full_rajce_gallery'));
+    register_activation_hook(__FILE__, array($this, 'activate'));  // activation of plugin
+    add_filter('plugin_action_links', array($this, 'filter_plugin_actions'), 10, 2);  // link from Plugins list admin page to settings of this plugin
+    add_action( 'add_meta_boxes', array($this, 'add_custom_box'));
   }
 
-  public function gallery_slice($content) {
+  public function slice($content) {
     if (!is_singular() && has_shortcode($content, 'gallery')) {
       $pattern = self::gallery_shortcode_regex;
       return preg_replace_callback("/$pattern/s", array($this, 'process_gallery_shortcode_tag'), $content);
@@ -49,12 +53,12 @@ class GallerySlice {
     $post = get_post();
     // if noslice set in post meta, then do not slice the gallery
     if (get_post_meta($post->ID, '_gallery_noslice', true) == "1") return $m[0];
-    
+
     // get tag name and attributes
     $tag = $m[2];
     $attr = shortcode_parse_atts( $m[3] );
     $orig_attr_json = json_encode($attr);
-    
+
     if (!isset($attr['ids'])) {
       extract(shortcode_atts(array(
         'order'      => 'ASC',
@@ -75,35 +79,20 @@ class GallerySlice {
       foreach ( $attachments as $att_id => $attachment )
         $attr['ids'] = isset($attr['ids']) ? $attr['ids'] . "," . $att_id : $att_id;
     }
-    
+
     if (!isset($attr['ids'])) return $m[0]; // empty gallery? nothing to do then
-  
-    // if attribute noslice is set, then do not slice
-    foreach ($attr as $value)
-      if ($value == "noslice") return $m[0];
-    
-    if (isset($attr['sliceto'])) {
-      // if gallery tag has attribute sliceto set, prefer its value
-      $slice_threshold = $attr['sliceto'];
-      $slice_downto    = $attr['sliceto'];
-    } else if (get_post_meta($post->ID, '_gallery_downto', true) != "") {
-      // if downto define in post meta, then use it
-      $slice_threshold = get_post_meta($post->ID, '_gallery_downto', true);
-      $slice_downto    = $slice_threshold;
-    } else {
-      // otherwise use global slice settings
-      $slice_threshold = get_option('gallery_slice_threshold');
-      $slice_downto    = get_option('gallery_slice_downto');
-    }
-    
+
+    if (GallerySlice::noslice_attr($attr)) return $m[0]; // if attribute noslice is set, then do not slice
+    list($slice_downto, $slice_threshold) = GallerySlice::get_slice_downto_and_threshold($attr, $post);
+
     $ids = explode(",", $attr['ids']);
     if (count($ids) <= $slice_threshold) return $m[0]; // threshold not reached, do not slice
-  
-    if (!$this->ajaxscript_to_head()) $this->gallery_slice_enqueue_scripts();
-  
+
+    if (!$this->ajaxscript_to_head()) $this->enqueue_scripts();
+
     $ids = array_slice($ids, 0, $slice_downto, true);
     $attr['ids'] = implode(",", $ids);
-    
+
     // construct the attributes string again
     $ids_string = "";
     foreach ($attr as $key => $value)
@@ -114,7 +103,7 @@ class GallerySlice {
       default:
         $ids_string .= ' ' . $key . '="' . $value . '"';
       }
-    
+
     // construct hyperlink to full gallery
     if (isset($attr['link2full'])) {
       $full_gallery_link = $attr['link2full'];
@@ -128,48 +117,48 @@ class GallerySlice {
       $full_gallery_link = "<div class=\"unsliced-gallery-link\"><a href=\"" . get_permalink() . "\" post_id=\"" . $post->ID . "\" orig_gallery_attrs=\"" . htmlspecialchars($orig_attr_json) . "\">$full_gallery_link</a></div>";
       $full_gallery_link .= "<div class=\"gallery-loading-animation\" style=\"display:none\"><img src=\"". get_option('gallery_slice_waiting_img') . "\"></div>";
     }
-  
+
     // return the tag back with sliced ids
     return "[" . $tag . $ids_string . "]" . $full_gallery_link;
   }
 
   const gallery_shortcode_regex = '\\[(\\[?)(gallery)(?![\\w-])([^\\]\\/]*(?:\\/(?!\\])[^\\]\\/]*)*?)(?:(\\/)\\]|\\](?:([^\\[]*+(?:\\[(?!\\/\\2\\])[^\\[]*+)*+)\\[\\/\\2\\])?)(\\]?)';
 
-  public function gallery_slice_admin_init() {
+  public function admin_init() {
     if (stristr($_SERVER['REQUEST_URI'], 'options-media.php')) {
       wp_enqueue_style('editor-buttons'); // we need to do this here; if we do it in admin_enqueue_scripts, it does not load
     }
-    self::gallery_slice_update_plugin_version();
+    self::check_plugin_update();
     wp_register_script( 'gallery-slice-admin-script', plugins_url( '/admin.js', __FILE__ ) , array('jquery'), false, true);
-    add_settings_section('gallery_slice_section', __('Gallery Slice', 'gallery_slice'), array($this, 'gallery_slice_settings_section'), 'media');
+    add_settings_section('gallery_slice_section', __('Gallery Slice', 'gallery_slice'), array($this, 'settings_section'), 'media');
     register_setting('media', 'gallery_slice_threshold', create_function('$input', 'return(filter_var($input, FILTER_SANITIZE_NUMBER_INT));'));
-    add_settings_field('gallery_slice_threshold', __('Maximum Threshold', 'gallery_slice'), 'GallerySlice::gallery_slice_option', 'media', 'gallery_slice_section', array('option'=>"threshold", 'type'=>'number', 'description'=>"If gallery contains more than this amount of pictures, it will be sliced down; otherwise it will be kept intact."));
+    add_settings_field('gallery_slice_threshold', __('Maximum Threshold', 'gallery_slice'), 'GallerySlice::option', 'media', 'gallery_slice_section', array('option'=>"threshold", 'type'=>'number', 'description'=>"If gallery contains more than this amount of pictures, it will be sliced down; otherwise it will be kept intact."));
     register_setting('media', 'gallery_slice_downto', create_function('$input', 'return(filter_var($input, FILTER_SANITIZE_NUMBER_INT));'));
-    add_settings_field('gallery_slice_downto', __('Slice down to', 'gallery_slice'), 'GallerySlice::gallery_slice_option', 'media', 'gallery_slice_section', array('option'=>"downto", 'type'=>'number', 'description'=>"If threshold surpassed, slice gallery down to this amount of pictures."));
+    add_settings_field('gallery_slice_downto', __('Slice down to', 'gallery_slice'), 'GallerySlice::option', 'media', 'gallery_slice_section', array('option'=>"downto", 'type'=>'number', 'description'=>"If threshold surpassed, slice gallery down to this amount of pictures."));
     register_setting('media', 'gallery_slice_link2full', create_function('$input', 'return(sanitize_text_field($input));'));
-    add_settings_field('gallery_slice_link2full', __('Full gallery link text', 'gallery_slice'), 'GallerySlice::gallery_slice_option', 'media', 'gallery_slice_section', array('option'=>"link2full", 'description'=>"The text that should be shown for displaying full gallery."));
+    add_settings_field('gallery_slice_link2full', __('Full gallery link text', 'gallery_slice'), 'GallerySlice::option', 'media', 'gallery_slice_section', array('option'=>"link2full", 'description'=>"The text that should be shown for displaying full gallery."));
     register_setting('media', 'gallery_slice_waiting_img', create_function('$input', 'return(filter_var($input, FILTER_SANITIZE_URL));'));
-    add_settings_field('gallery_slice_waiting_img', __('Loading animation', 'gallery_slice'), 'GallerySlice::gallery_slice_option_waiting_img', 'media', 'gallery_slice_section');
+    add_settings_field('gallery_slice_waiting_img', __('Loading animation', 'gallery_slice'), 'GallerySlice::option_waiting_img', 'media', 'gallery_slice_section');
   }
-  
-  public function gallery_slice_settings_section() {
+
+  public function settings_section() {
     echo(
       '<div id="gallery_slice_options_desc" style="margin:0 0 15px 10px;-webkit-border-radius:3px;border-radius:3px;border-width:1px;border-color:#e6db55;border-style:solid;float:right;background:#FFFBCC;text-align:center;width:200px">'
       . '<p style="line-height:1.5em;">Plugin <strong>Gallery Slice</strong><br />Autor: <a href="http://www.honza.info/" class="external" target="_blank" title="http://www.honza.info/">Honza Skýpala</a></p>'
       . '</div>'
       . '<p>' . __('You can slice the gallery on archive type pages — date-based, category-based, tag-based, author-based lists of posts. Typically a homepage is a date-based archive, then it applies also to homepage.', 'gallery_slice'). '</p>'
       . '<p>' . __('The purpose is that your post can contain a huge gallery of pictures (let\'s say like 100), but you want to display all of 100 only on a single post page; on a homepage / archive page you want to display just a couple of images, like a preview. This plugins slices the gallery only to a defined number.', 'gallery_slice'). '</p>'
-    ); 
+    );
   }
 
-  public function gallery_slice_option(array $args) {
+  public function option(array $args) {
     echo(
       '<input name="gallery_slice_' . $args['option'] . '" type="' . (array_key_exists('type',$args) ? $args['type'] : "text") . '" id="gallery_slice_' . $args['option'] . '" value="' . get_option("gallery_slice_" . $args['option']) . '" class="' . ($args['type'] == "number" ? "small-text" : "regular-text") . '" ' . ($args['type'] == "number" ? 'min="1" ' : "") . '/> '
       . __($args['description'], 'gallery_slice')
      );
   }
-  
-  public function gallery_slice_option_waiting_img() {
+
+  public function option_waiting_img() {
     echo(
       '<img id="gallery_slice_waiting_img_preview" src="' . get_option("gallery_slice_waiting_img") . '" style="margin:6px 0"/><br>'
       . '<div style="margin-bottom:0.5em;float:none" class="wp-media-buttons">'
@@ -181,17 +170,17 @@ class GallerySlice {
       . __("URL of the img showing when loading rest of gallery.", 'gallery_slice')
      );
   }
-  
+
   protected static $script_enqueued = false;
-  public function gallery_slice_enqueue_scripts() {
+  public function enqueue_scripts() {
     if (!self::$script_enqueued) {
       wp_enqueue_script('gallery-slice-ajax');
       wp_localize_script('gallery-slice-ajax', 'GallerySliceAjax', array('ajaxurl' => admin_url('admin-ajax.php')));
       self::$script_enqueued = true;
     }
   }
-  
-  public function gallery_slice_admin_enqueue_scripts($hook) {
+
+  public function admin_enqueue_scripts($hook) {
     switch ($hook) {
     case "options-media.php":
       wp_enqueue_style('dashicons');
@@ -203,15 +192,92 @@ class GallerySlice {
     }
   }
 
-  public function gallery_slice_activate() {
+  public function slice_rajce($args, $album_URL, $attr) {
+    $images   = $args[0];
+    $appendix = $args[1];
+    $post = get_post();
+
+    if (!is_singular()) {
+
+      if (GallerySlice::noslice_attr($attr)) return array($images, $appendix);
+      list($slice_downto, $slice_threshold) = GallerySlice::get_slice_downto_and_threshold($attr, $post);       // add also params from post / tag
+
+      if (count($images) > $slice_threshold) {
+        if (!$this->ajaxscript_to_head()) $this->enqueue_scripts();
+
+        $attrs = array();
+        $attrs['images'] = array_keys($images);
+        $attrs['image_base_URL'] = substr($images[array_keys($images)[0]], 0, strrpos($images[array_keys($images)[0]], '/')+1);
+        $attrs['album_URL'] = $album_URL;
+        $attrs['attr'] = $attr;
+
+        $images = array_slice($images, 0, $slice_downto);
+
+        // construct hyperlink to full gallery
+        if (isset($attr['link2full'])) {
+          $full_gallery_link = $attr['link2full'];
+        } else if (get_post_meta($post->ID, '_gallery_link2full', true) != "") {
+          $full_gallery_link = get_post_meta($post->ID, '_gallery_link2full', true);
+        } else {
+          $full_gallery_link = get_option('gallery_slice_link2full');
+        }
+        $full_gallery_link = trim($full_gallery_link);
+        if ($full_gallery_link != "") {
+          $appendix .= "<div class=\"unsliced-gallery-link\"><a href=\"" . get_permalink() . "\" post_id=\"" . $post->ID . "\" orig_gallery_attrs=\"" . htmlspecialchars(json_encode($attrs)) . "\">$full_gallery_link</a></div>";
+          $appendix .= "<div class=\"gallery-loading-animation\" style=\"display:none\"><img src=\"". get_option('gallery_slice_waiting_img') . "\"></div>";
+        }
+      }
+    }
+
+    return array($images, $appendix);
+  }
+
+  private static function noslice_attr($attr) {
+    foreach ($attr as $value)
+      if ($value == "noslice") return true;
+    return false;
+  }
+
+  private static function get_slice_downto_and_threshold($attr, $post) {
+    if (isset($attr['sliceto'])) {
+      // if gallery tag has attribute sliceto set, prefer its value
+      $slice_threshold = $attr['sliceto'];
+      $slice_downto    = $attr['sliceto'];
+    } else if (get_post_meta($post->ID, '_gallery_downto', true) != "") {
+      // if downto define in post meta, then use it
+      $slice_threshold = get_post_meta($post->ID, '_gallery_downto', true);
+      $slice_downto    = $slice_threshold;
+    } else {
+      // otherwise use global slice settings
+      $slice_threshold = get_option('gallery_slice_threshold');
+      $slice_downto    = get_option('gallery_slice_downto');
+    }
+    return array($slice_downto, $slice_threshold);
+  }
+
+  public function full_rajce_gallery() {
+    query_posts('p=' . $_POST['postID']);
+    if (have_posts()) {
+      the_post();
+      header( "Content-Type: application/json" );
+      $attrs = json_decode(stripslashes(htmlspecialchars_decode($_POST['origAttrs'])), true);
+      $images = array_combine($attrs['images'], $attrs['images']);
+      foreach($images as $key => &$image)
+        $image = $attrs['image_base_URL'] . $image;
+      echo json_encode(array('gallery' => Rajce_embed::full_gallery($attrs['album_URL'], $images, $attrs['attr'])));
+    }
+    exit;
+  }
+
+  public function activate() {
     update_option('gallery_slice_version', self::version); // store plug-in version, if we later need to provide specific actions during upgrade
     add_option('gallery_slice_threshold', 15);
     add_option('gallery_slice_downto', 9);
     add_option('gallery_slice_link2full', __("Full gallery →", 'gallery_slice'));
     add_option('gallery_slice_waiting_img', plugins_url( '/ajax-loader.gif', __FILE__ ));
   }
-  
-  public function gallery_slice_update_plugin_version() {
+
+  public function check_plugin_update() {
     $registered_version = get_option('gallery_slice_version', '0');
     if (version_compare($registered_version, self::version, '<')) {
       if (version_compare($registered_version, '1.1', '<')) {
@@ -223,10 +289,10 @@ class GallerySlice {
   }
 
   protected static $this_plugin;
-  public function gallery_slice_filter_plugin_actions($links, $file) {
+  public function filter_plugin_actions($links, $file) {
     // Add settings link to plugin list for this plugin
     if (!self::$this_plugin) self::$this_plugin = plugin_basename(__FILE__);
-    
+
     if ($file == self::$this_plugin) {
       $settings_link = '<a href="options-media.php#gallery_slice_options_desc">' . __('Settings') . '</a>';
       array_unshift( $links, $settings_link ); // before other links
@@ -234,13 +300,13 @@ class GallerySlice {
     return $links;
   }
 
-  public function gallery_slice_add_custom_box() {
+  public function add_custom_box() {
     $screens = array('post', 'page');
     foreach ($screens as $screen) {
         add_meta_box(
             'gallery_slice_sectionid',
             __('Gallery Slice', 'gallery_slice'),
-            array($this, 'gallery_slice_inner_custom_box'),
+            array($this, 'inner_custom_box'),
             $screen,
             'side',
             'low'
@@ -248,12 +314,12 @@ class GallerySlice {
     }
   }
 
-  public function gallery_slice_inner_custom_box( $post ) {
+  public function inner_custom_box($post) {
     echo '<div class="misc-pub-section" id="gallery_slice_noslice_div">';
     $value = get_post_meta( $post->ID, '_gallery_noslice', true );
     echo '<label class="selectit"><input value="1" type="checkbox" name="gallery_noslice" id="gallery_noslice"' . ($value == "1" ? ' checked="checked"' : '' ) .'> '. __('Do not slice gallery in this post', 'gallery_slice') .'</label>';
     echo '</div>';
-  
+
     echo '<div class="misc-pub-section" id="gallery_slice_downto_div">';
     $value = get_post_meta( $post->ID, '_gallery_downto', true );
     $global_label = str_replace('%1', get_option('gallery_slice_downto'), __('Slice to globally configured value (%1)', 'gallery_slice'));
@@ -265,7 +331,7 @@ class GallerySlice {
     echo '<label for="gallery_slice_downto">' . $downto_full . '</label> ';
     echo '</div>';
     echo '</div>';
-  
+
     echo '<div class="misc-pub-section" id="gallery_slice_text2link_div" style="border-bottom-width:0px">';
     $value = get_post_meta( $post->ID, '_gallery_link2full', true );
     $global_label = str_replace('%1', get_option('gallery_slice_link2full'), __('Use globally configured fully gallery hyperlink text (%1)', 'gallery_slice'));
@@ -280,10 +346,10 @@ class GallerySlice {
     echo '</div>';
   }
 
-  public function gallery_slice_save_postdata( $post_id ) {
+  public function save_postdata( $post_id ) {
     $mydata = sanitize_text_field( $_POST['gallery_noslice'] );
     update_post_meta( $post_id, '_gallery_noslice', $mydata );
-  
+
     $mydata = sanitize_text_field( $_POST['gallery_slice_downto_global'] );
     if ($mydata == "1") {
       update_post_meta($post_id, '_gallery_downto', "");
@@ -291,7 +357,7 @@ class GallerySlice {
       $mydata = sanitize_text_field( $_POST['gallery_slice_downto'] );
       update_post_meta($post_id, '_gallery_downto', $mydata);
     }
-  
+
     $mydata = sanitize_text_field( $_POST['gallery_slice_link2full_global'] );
     if ($mydata == "1") {
       update_post_meta($post_id, '_gallery_link2full', "");
@@ -301,7 +367,7 @@ class GallerySlice {
     }
   }
 
-  public function gallery_slice_full_gallery() {
+  public function full_gallery() {
     query_posts('p=' . $_POST['postID']);
     if (have_posts()) {
       the_post();

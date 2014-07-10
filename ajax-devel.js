@@ -9,10 +9,11 @@ jQuery(document).ready(function($){
 
     hyperlink_div.hide();
     animation_div.show();
+    
 		$.post(
 			GallerySliceAjax.ajaxurl,
 			{
-				action : 'gallery_slice-full_gallery',
+				action : gallery.hasClass("gallery-embed-rajce") ? 'gallery_slice-full_rajce_gallery' : 'gallery_slice-full_gallery',
 				postID : $(this).attr("post_id"),
 				origAttrs: $(this).attr("orig_gallery_attrs"),
 				link_to_file: /\.(jpe?g|png|gif)$/i.exec(gallery.find("a").first().attr("href"))
