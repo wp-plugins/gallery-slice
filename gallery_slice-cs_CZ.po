@@ -5,7 +5,7 @@ msgid "Gallery Slice"
 msgstr "Zkracování galerie"
 
 msgid "You can slice the gallery on archive type pages — date-based, category-based, tag-based, author-based lists of posts. Typically a homepage is a date-based archive, then it applies also to homepage."
-msgstr "Tento plug-in zkracuje galerie obrázků na stránkách typu archive — výpisy článků podle data, kategorie, štítku nebo autora. Typicky domovská stránka je výpis článků podle data, potom se zkrácení aplikuje i na domovskou stránku."
+msgstr "Plug-in <em>Gallery Slice</em> zkracuje galerie obrázků na stránkách typu archive — výpisy článků podle data, kategorie, štítku nebo autora. Typicky domovská stránka je výpis článků podle data, potom se zkrácení aplikuje i na domovskou stránku."
 
 msgid "The purpose is that your post can contain a huge gallery of pictures (let's say like 100), but you want to display all of 100 only on a single post page; on a homepage / archive page you want to display just a couple of images, like a preview. This plugins slices the gallery only to a defined number."
 msgstr "Důvodem zkrácení je, že články mohou mít obrovské galerie obrázků (řekněme jedna galerie více jak 100 obrázků), ale vy chcete všechny obrázky ukázat jen při výpisu samostatného článku; na vaší domovské stránce a dalších archivních stránkách chcete ukázat pouze několik obrázků z galerie, pouze náhled galerie. Tento plug-in umožňuje pro takové účely zkrátit galerii na určené množství obrázků."
@@ -42,3 +42,15 @@ msgstr "Zkrátit na %1 náhledů"
 
 msgid "Use globally configured fully gallery hyperlink text (%1)"
 msgstr "Použít globálně nastavený text odkazu pro zobrazení celé galerie (%1)"
+
+msgid "Loading animation"
+msgstr "Animace při nahrávání"
+
+msgid "Set Default"
+msgstr "Nastavit výchozí"
+
+msgid "Select image"
+msgstr "Vyberte obrázek"
+
+msgid "URL of the img showing when loading rest of gallery."
+msgstr "URL adresa obrázku zobrazeného při nahrávání zbytku galerie."

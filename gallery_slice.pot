@@ -43,5 +43,14 @@ msgstr ""
 msgid "Use globally configured fully gallery hyperlink text (%1)"
 msgstr ""
 
-msgid "Full gallery hyperlink text:"
+msgid "Loading animation"
+msgstr ""
+
+msgid "Set Default"
+msgstr ""
+
+msgid "Select image"
+msgstr ""
+
+msgid "URL of the img showing when loading rest of gallery."
 msgstr ""

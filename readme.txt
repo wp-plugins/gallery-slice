@@ -4,7 +4,7 @@ Donate link: http://www.honza.info
 Tags: gallery, ajax, image, images
 Requires at least: 3.9
 Tested up to: 3.9.1
-Stable tag: 1.1
+Stable tag: 1.3
 License: WTFPL license applies
 
 Slice down galleries on archive pages to preview-only, with link to load full gallery via Ajax
@@ -57,17 +57,38 @@ Examples:
 
 == Changelog ==
 
-= 1.0 =
-* Initial release
+= 1.3 =
+* Support for slicing of galleries created by my other plugin <a href="http://wordpress.org/plugins/rajce-embed/">rajce-embed</a>
+= 1.2.1 =
+* Compatibility with <a href="http://wordpress.org/plugins/jetpack/">JetPack</a> plugin <a href="http://jetpack.me/support/mobile-theme/">Mobile Theme</a>
+= 1.2 =
+* Loading animation option integrated with WordPress Media Library
+* Added some missing strings to i18n
+* Smaller fixes and optimizations
 = 1.1 =
 * Loading animation added; user can specify his own loading gif in the options
+= 1.0 =
+* Initial release
 
 == License ==
 
-WTFPL license applies
+WTFPL License 2.0 applies
+
+<code>           DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+                   Version 2, December 2004
+
+Copyright (C) 2004 Sam Hocevar <sam@hocevar.net>
+
+Everyone is permitted to copy and distribute verbatim or modified
+copies of this license document, and changing it is allowed as long
+as the name is changed.
+
+           DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+  TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+
+ 0. You just DO WHAT THE FUCK YOU WANT TO.</code>
 
 == ToDo's ==
 * enable plugin to work in opposite manner - do not automatically slice down galleries, but only on posts / tags where the downto attr is set
 * re-check WP-Minify on possibility to use the compiled JS files (internal)
-* integrate loading animation gif option (settings) integrated with WordPress media library
 * enable slicing w/ Ajax loading on single posts
