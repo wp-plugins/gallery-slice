@@ -4,7 +4,7 @@ Donate link: http://www.honza.info
 Tags: gallery, ajax, image, images
 Requires at least: 3.9
 Tested up to: 3.9.1
-Stable tag: 1.3.1
+Stable tag: 1.3.2
 License: WTFPL license applies
 
 Slice down galleries on archive pages to preview-only, with link to load full gallery via Ajax
@@ -57,6 +57,8 @@ Examples:
 
 == Changelog ==
 
+= 1.3.2 =
+* Bug-fixes and warning-fixes
 = 1.3.1 =
 * Fix for compatibility with PHP 5.3
 = 1.3 =
