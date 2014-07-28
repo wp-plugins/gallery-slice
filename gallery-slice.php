@@ -3,7 +3,7 @@
 Plugin Name: Gallery Slice
 Plugin URI: http://wordpress.org/plugins/gallery-slice/
 Description: Slices gallery to a "preview" on archive pages (date, category, tag and author based lists, usually including homepage)
-Version: 1.3.1
+Version: 1.3.2
 Author: Honza Skypala
 Author URI: http://www.honza.info/
 License: WTFPL 2.0
@@ -12,7 +12,7 @@ License: WTFPL 2.0
 include_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
 class GallerySlice {
-  const version = "1.3.1";
+  const version = "1.3.2";
 
   const ajax_devel_script    = 'ajax-devel.js';
   const ajax_minified_script = 'ajax.js';
@@ -27,10 +27,10 @@ class GallerySlice {
       add_action('save_post', array($this, 'save_postdata'));
     } else {
       add_filter('the_content', array($this, 'slice'), 1);
-      wp_register_script('gallery-slice-ajax', plugin_dir_url(__FILE__) . $this->ajaxscript, array('jquery'), false, !$this->ajaxscript_to_head());
       add_filter('rajce-gallery-images', array($this, 'slice_rajce'), 10, 3);
+      add_action('wp_enqueue_scripts', create_function('', "wp_register_script('gallery-slice-ajax', '" . plugin_dir_url(__FILE__) . $this->ajaxscript ."', array('jquery'), false, " . !$this->ajaxscript_to_head() .");"), 10);
       if ($this->ajaxscript_to_head())
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'), 20);
     }
     add_action('wp_ajax_nopriv_gallery_slice-full_gallery', array($this, 'full_gallery')); // ajax handler for annonymous users
     add_action('wp_ajax_gallery_slice-full_gallery', array($this, 'full_gallery'));        // ajax handler for logged-in users
@@ -141,7 +141,7 @@ class GallerySlice {
     add_settings_field('gallery_slice_waiting_img', __('Loading animation', 'gallery_slice'), 'GallerySlice::option_waiting_img', 'media', 'gallery_slice_section');
   }
 
-  public function settings_section() {
+  public static function settings_section() {
     echo(
       '<div id="gallery_slice_options_desc" style="margin:0 0 15px 10px;-webkit-border-radius:3px;border-radius:3px;border-width:1px;border-color:#e6db55;border-style:solid;float:right;background:#FFFBCC;text-align:center;width:200px">'
       . '<p style="line-height:1.5em;">Plugin <strong>Gallery Slice</strong><br />Autor: <a href="http://www.honza.info/" class="external" target="_blank" title="http://www.honza.info/">Honza Skýpala</a></p>'
@@ -151,14 +151,14 @@ class GallerySlice {
     );
   }
 
-  public function option(array $args) {
+  public static function option(array $args) {
     echo(
-      '<input name="gallery_slice_' . $args['option'] . '" type="' . (array_key_exists('type',$args) ? $args['type'] : "text") . '" id="gallery_slice_' . $args['option'] . '" value="' . get_option("gallery_slice_" . $args['option']) . '" class="' . ($args['type'] == "number" ? "small-text" : "regular-text") . '" ' . ($args['type'] == "number" ? 'min="1" ' : "") . '/> '
+      '<input name="gallery_slice_' . $args['option'] . '" type="' . (array_key_exists('type',$args) ? $args['type'] : "text") . '" id="gallery_slice_' . $args['option'] . '" value="' . get_option("gallery_slice_" . $args['option']) . '" class="' . (array_key_exists('type',$args) && $args['type'] == "number" ? "small-text" : "regular-text") . '" ' . (array_key_exists('type',$args) && $args['type'] == "number" ? 'min="1" ' : "") . '/> '
       . __($args['description'], 'gallery_slice')
      );
   }
 
-  public function option_waiting_img() {
+  public static function option_waiting_img() {
     echo(
       '<img id="gallery_slice_waiting_img_preview" src="' . get_option("gallery_slice_waiting_img") . '" style="margin:6px 0"/><br>'
       . '<div style="margin-bottom:0.5em;float:none" class="wp-media-buttons">'
@@ -265,7 +265,7 @@ class GallerySlice {
       $images = array_combine($attrs['images'], $attrs['images']);
       foreach($images as $key => &$image)
         $image = $attrs['image_base_URL'] . $image;
-      echo json_encode(array('gallery' => Rajce_embed::full_gallery($attrs['album_URL'], $images, $attrs['attr'])));
+      echo json_encode(array('gallery' => Rajce_embed::full_gallery($attrs['album_URL'], $images, $attrs['attr'], 1)));
     }
     exit;
   }
@@ -348,22 +348,22 @@ class GallerySlice {
   }
 
   public function save_postdata( $post_id ) {
-    $mydata = sanitize_text_field( $_POST['gallery_noslice'] );
+    $mydata = isset($_POST['gallery_noslice']) ? sanitize_text_field($_POST['gallery_noslice']) : '';
     update_post_meta( $post_id, '_gallery_noslice', $mydata );
 
-    $mydata = sanitize_text_field( $_POST['gallery_slice_downto_global'] );
+    $mydata = isset($_POST['gallery_slice_downto_global']) ? sanitize_text_field($_POST['gallery_slice_downto_global']) : '';
     if ($mydata == "1") {
       update_post_meta($post_id, '_gallery_downto', "");
     } else {
-      $mydata = sanitize_text_field( $_POST['gallery_slice_downto'] );
+      $mydata = isset($_POST['gallery_slice_downto']) ? sanitize_text_field($_POST['gallery_slice_downto']) : '';
       update_post_meta($post_id, '_gallery_downto', $mydata);
     }
 
-    $mydata = sanitize_text_field( $_POST['gallery_slice_link2full_global'] );
+    $mydata = isset($_POST['gallery_slice_link2full_global']) ? sanitize_text_field($_POST['gallery_slice_link2full_global']) : '';
     if ($mydata == "1") {
       update_post_meta($post_id, '_gallery_link2full', "");
     } else {
-      $mydata = sanitize_text_field( $_POST['gallery_slice_link2full'] );
+      $mydata = isset($_POST['gallery_slice_link2full']) ? sanitize_text_field($_POST['gallery_slice_link2full']) : '';
       update_post_meta($post_id, '_gallery_link2full', $mydata);
     }
   }
