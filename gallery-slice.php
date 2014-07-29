@@ -3,7 +3,7 @@
 Plugin Name: Gallery Slice
 Plugin URI: http://wordpress.org/plugins/gallery-slice/
 Description: Slices gallery to a "preview" on archive pages (date, category, tag and author based lists, usually including homepage)
-Version: 1.3.2
+Version: 1.3.3
 Author: Honza Skypala
 Author URI: http://www.honza.info/
 License: WTFPL 2.0
@@ -12,7 +12,7 @@ License: WTFPL 2.0
 include_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
 class GallerySlice {
-  const version = "1.3.2";
+  const version = "1.3.3";
 
   const ajax_devel_script    = 'ajax-devel.js';
   const ajax_minified_script = 'ajax.js';
@@ -28,7 +28,7 @@ class GallerySlice {
     } else {
       add_filter('the_content', array($this, 'slice'), 1);
       add_filter('rajce-gallery-images', array($this, 'slice_rajce'), 10, 3);
-      add_action('wp_enqueue_scripts', create_function('', "wp_register_script('gallery-slice-ajax', '" . plugin_dir_url(__FILE__) . $this->ajaxscript ."', array('jquery'), false, " . !$this->ajaxscript_to_head() .");"), 10);
+      add_action('wp_enqueue_scripts', create_function('', "wp_register_script('gallery-slice-ajax', '" . plugin_dir_url(__FILE__) . $this->ajaxscript ."', array('jquery'), false, " . (!$this->ajaxscript_to_head() ? 'true' : 'false') .");"), 10);
       if ($this->ajaxscript_to_head())
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'), 20);
     }
