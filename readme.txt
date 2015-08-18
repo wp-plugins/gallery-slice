@@ -3,7 +3,7 @@ Contributors: honza.skypala
 Donate link: http://www.honza.info
 Tags: gallery, ajax, image, images
 Requires at least: 3.9
-Tested up to: 4.2
+Tested up to: 4.3
 Stable tag: 1.3.3
 License: WTFPL license applies
 
